@@ -16,6 +16,12 @@ const app = new Hono<{ Bindings: HttpBindings }>();
 // ── Global middleware ───────────────────────────────────────────────────────
 app.use(bodyLimit({ maxSize: 50 * 1024 * 1024 }));
 
+// CORS - Permitir peticiones desde Firebase Hosting
+app.use(cors({
+  origin: ["https://blackgym-cdf9a.web.app", "https://blackgym-cdf9a.firebaseapp.com", "http://localhost:3000"],
+  credentials: true,
+}));
+
 // Fix Google Sign-In popup: allow same-origin popups
 app.use("*", async (c, next) => {
   await next();
@@ -62,3 +68,4 @@ if (env.isProduction) {
     console.log(`Server running on http://localhost:${env.port}/`);
   });
 }
+
