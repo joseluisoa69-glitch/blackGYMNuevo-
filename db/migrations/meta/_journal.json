@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1780627240437,
+      "tag": "0000_sticky_piledriver",
+      "breakpoints": true
+    }
+  ]
+}

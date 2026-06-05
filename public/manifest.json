@@ -1,0 +1,24 @@
+{
+  "name": "BlackGYM - AI Training",
+  "short_name": "BlackGYM",
+  "description": "App de entrenamiento personal con IA, mapa muscular interactivo y seguimiento de progreso",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0A0A0A",
+  "theme_color": "#0A0A0A",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/assets/logo-blackgym.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/logo-blackgym.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
