@@ -14,7 +14,7 @@ import {
 
 export default function Perfil() {
   const { user, logout } = useAuth();
-  const { data: profile } = trpc.profile.get.useQuery();
+  const { data: profile, isLoading } = trpc.profile.get.useQuery();
   const utils = trpc.useUtils();
 
   const [form, setForm] = useState<{
@@ -27,15 +27,31 @@ export default function Perfil() {
     tiempoSesion: number;
     lesiones: string;
   }>({
-    nombre: profile?.nombre || "",
-    pesoKg: profile?.pesoKg?.toString() || "",
-    alturaCm: profile?.alturaCm?.toString() || "",
-    objetivo: (profile?.objetivo as any) || "mantener",
-    nivel: (profile?.nivel as any) || "intermedio",
-    diasSemana: profile?.diasSemana || 3,
-    tiempoSesion: profile?.tiempoSesion || 60,
-    lesiones: profile?.lesiones || "",
+    nombre: "",
+    pesoKg: "",
+    alturaCm: "",
+    objetivo: "mantener",
+    nivel: "intermedio",
+    diasSemana: 3,
+    tiempoSesion: 60,
+    lesiones: "",
   });
+
+  // Sincronizar form cuando llegan los datos del servidor
+  useEffect(() => {
+    if (profile) {
+      setForm({
+        nombre: profile.nombre || "",
+        pesoKg: profile.pesoKg?.toString() || "",
+        alturaCm: profile.alturaCm?.toString() || "",
+        objetivo: profile.objetivo || "mantener",
+        nivel: profile.nivel || "intermedio",
+        diasSemana: profile.diasSemana || 3,
+        tiempoSesion: profile.tiempoSesion || 60,
+        lesiones: profile.lesiones || "",
+      });
+    }
+  }, [profile]);
 
   const upsertProfile = trpc.profile.upsert.useMutation({
     onSuccess: () => {
@@ -55,6 +71,15 @@ export default function Perfil() {
       lesiones: form.lesiones || undefined,
     });
   };
+
+  // Mostrar loading mientras carga
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
+        <div className="animate-spin w-10 h-10 border-2 border-[#FFD700] border-t-transparent rounded-full" />
+      </div>
+    );
+  }
 
   const objetivos: { id: "perder_peso" | "ganar_musculo" | "mantener" | "fuerza" | "resistencia"; label: string }[] = [
     { id: "perder_peso", label: "Perder Peso" },
@@ -239,4 +264,3 @@ export default function Perfil() {
     </div>
   );
 }
-
