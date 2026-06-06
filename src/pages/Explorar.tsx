@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { trpc } from "@/providers/trpc";
 import { useStore } from "@/store/useStore";
 import {
@@ -12,37 +12,70 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const muscleGroups = [
-  { id: "pecho", name: "Pecho", x: 50, y: 22, r: 35 },
-  { id: "hombros", name: "Hombros", x: 28, y: 18, r: 18 },
-  { id: "hombros-r", name: "Hombros", x: 72, y: 18, r: 18 },
-  { id: "biceps", name: "Biceps", x: 22, y: 32, r: 16 },
-  { id: "biceps-r", name: "Biceps", x: 78, y: 32, r: 16 },
-  { id: "abs", name: "Abdominales", x: 50, y: 38, r: 28 },
-  { id: "oblicuos", name: "Oblicuos", x: 38, y: 38, r: 14 },
-  { id: "oblicuos-r", name: "Oblicuos", x: 62, y: 38, r: 14 },
-  { id: "cuadriceps", name: "Cuadriceps", x: 38, y: 60, r: 22 },
-  { id: "cuadriceps-r", name: "Cuadriceps", x: 62, y: 60, r: 22 },
-  { id: "pantorrilla", name: "Pantorrilla", x: 38, y: 82, r: 16 },
-  { id: "pantorrilla-r", name: "Pantorrilla", x: 62, y: 82, r: 16 },
-  { id: "trapecio", name: "Trapecio", x: 50, y: 12, r: 20 },
-  { id: "antebrazo", name: "Antebrazo", x: 15, y: 42, r: 14 },
-  { id: "antebrazo-r", name: "Antebrazo", x: 85, y: 42, r: 14 },
+// Zonas musculares con paths SVG más precisos (en lugar de círculos)
+const muscleZones = [
+  // Cabeza y cuello
+  { id: "trapecio", name: "Trapecio", path: "M45,8 L55,8 L58,15 L42,15 Z", x: 50, y: 12, r: 12 },
+  
+  // Hombros (más arriba y a los lados)
+  { id: "hombros", name: "Hombros", path: "M20,15 L32,15 L30,22 L22,22 Z", x: 26, y: 18, r: 14 },
+  { id: "hombros-r", name: "Hombros", path: "M68,15 L80,15 L78,22 L70,22 Z", x: 74, y: 18, r: 14 },
+  
+  // Pecho (más pequeño, solo centro superior)
+  { id: "pecho", name: "Pecho", path: "M38,20 L62,20 L60,30 L40,30 Z", x: 50, y: 25, r: 18 },
+  
+  // Biceps (más abajo de hombros)
+  { id: "biceps", name: "Biceps", path: "M15,28 L25,28 L24,36 L16,36 Z", x: 20, y: 32, r: 12 },
+  { id: "biceps-r", name: "Biceps", path: "M75,28 L85,28 L84,36 L76,36 Z", x: 80, y: 32, r: 12 },
+  
+  // Antebrazos
+  { id: "antebrazo", name: "Antebrazo", path: "M12,38 L22,38 L20,46 L14,46 Z", x: 17, y: 42, r: 10 },
+  { id: "antebrazo-r", name: "Antebrazo", path: "M78,38 L88,38 L86,46 L80,46 Z", x: 83, y: 42, r: 10 },
+  
+  // Abdominales (centro)
+  { id: "abs", name: "Abdominales", path: "M42,32 L58,32 L56,45 L44,45 Z", x: 50, y: 38, r: 15 },
+  
+  // Oblicuos (a los lados del abdomen)
+  { id: "oblicuos", name: "Oblicuos", path: "M35,35 L42,35 L40,42 L37,42 Z", x: 38, y: 38, r: 8 },
+  { id: "oblicuos-r", name: "Oblicuos", path: "M58,35 L65,35 L63,42 L60,42 Z", x: 62, y: 38, r: 8 },
+  
+  // Cuadriceps (muslos frontales)
+  { id: "cuadriceps", name: "Cuadriceps", path: "M35,50 L45,50 L43,68 L37,68 Z", x: 40, y: 60, r: 14 },
+  { id: "cuadriceps-r", name: "Cuadriceps", path: "M55,50 L65,50 L63,68 L57,68 Z", x: 60, y: 60, r: 14 },
+  
+  // Pantorrillas
+  { id: "pantorrilla", name: "Pantorrilla", path: "M35,72 L42,72 L40,88 L37,88 Z", x: 38, y: 82, r: 10 },
+  { id: "pantorrilla-r", name: "Pantorrilla", path: "M58,72 L65,72 L63,88 L60,88 Z", x: 62, y: 82, r: 10 },
 ];
 
-const muscleGroupsBack = [
-  { id: "espalda", name: "Dorsales", x: 50, y: 25, r: 40 },
-  { id: "trapecio-p", name: "Trapecio", x: 50, y: 12, r: 25 },
-  { id: "hombros-p", name: "Hombros Post.", x: 28, y: 18, r: 18 },
-  { id: "hombros-pr", name: "Hombros Post.", x: 72, y: 18, r: 18 },
-  { id: "triceps", name: "Triceps", x: 22, y: 32, r: 16 },
-  { id: "triceps-r", name: "Triceps", x: 78, y: 32, r: 16 },
-  { id: "lumbar", name: "Lumbar", x: 50, y: 40, r: 22 },
-  { id: "gluteos", name: "Gluteos", x: 50, y: 50, r: 28 },
-  { id: "femoral", name: "Femoral", x: 38, y: 62, r: 20 },
-  { id: "femoral-r", name: "Femoral", x: 62, y: 62, r: 20 },
-  { id: "pantorrilla-p", name: "Pantorrilla", x: 38, y: 82, r: 16 },
-  { id: "pantorrilla-pr", name: "Pantorrilla", x: 62, y: 82, r: 16 },
+const muscleZonesBack = [
+  // Trapecio posterior
+  { id: "trapecio-p", name: "Trapecio", path: "M40,8 L60,8 L62,18 L38,18 Z", x: 50, y: 12, r: 14 },
+  
+  // Hombros posteriores
+  { id: "hombros-p", name: "Hombros Post.", path: "M22,15 L32,15 L30,22 L24,22 Z", x: 27, y: 18, r: 12 },
+  { id: "hombros-pr", name: "Hombros Post.", path: "M68,15 L78,15 L76,22 L70,22 Z", x: 73, y: 18, r: 12 },
+  
+  // Dorsales (espalda)
+  { id: "espalda", name: "Dorsales", path: "M35,20 L65,20 L62,38 L38,38 Z", x: 50, y: 28, r: 20 },
+  
+  // Triceps
+  { id: "triceps", name: "Triceps", path: "M15,28 L25,28 L24,36 L16,36 Z", x: 20, y: 32, r: 10 },
+  { id: "triceps-r", name: "Triceps", path: "M75,28 L85,28 L84,36 L76,36 Z", x: 80, y: 32, r: 10 },
+  
+  // Lumbar
+  { id: "lumbar", name: "Lumbar", path: "M42,38 L58,38 L56,48 L44,48 Z", x: 50, y: 42, r: 12 },
+  
+  // Gluteos
+  { id: "gluteos", name: "Gluteos", path: "M38,48 L62,48 L60,58 L40,58 Z", x: 50, y: 52, r: 14 },
+  
+  // Femoral (muslos posteriores)
+  { id: "femoral", name: "Femoral", path: "M35,58 L45,58 L43,72 L37,72 Z", x: 40, y: 65, r: 12 },
+  { id: "femoral-r", name: "Femoral", path: "M55,58 L65,58 L63,72 L57,72 Z", x: 60, y: 65, r: 12 },
+  
+  // Pantorrillas posteriores
+  { id: "pantorrilla-p", name: "Pantorrilla", path: "M35,74 L42,74 L40,88 L37,88 Z", x: 38, y: 82, r: 10 },
+  { id: "pantorrilla-pr", name: "Pantorrilla", path: "M58,74 L65,74 L63,88 L60,88 Z", x: 62, y: 82, r: 10 },
 ];
 
 const equipmentFilters = [
@@ -78,7 +111,7 @@ export default function Explorar() {
     );
   });
 
-  const currentMuscles = muscleView === "front" ? muscleGroups : muscleGroupsBack;
+  const currentMuscles = muscleView === "front" ? muscleZones : muscleZonesBack;
 
   return (
     <div className="space-y-4">
@@ -136,45 +169,53 @@ export default function Explorar() {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.3 }}
             />
-            {/* Interactive Muscle Zones */}
+            {/* Interactive Muscle Zones - Usando paths más precisos */}
             <svg
               className="absolute inset-0 w-full h-full"
               viewBox="0 0 100 100"
               preserveAspectRatio="none"
             >
               {currentMuscles.map((muscle) => (
-                <circle
-                  key={muscle.id}
-                  cx={`${muscle.x}%`}
-                  cy={`${muscle.y}%`}
-                  r={`${muscle.r / 5}%`}
-                  fill={
-                    selectedMuscle === muscle.name
-                      ? "rgba(255,215,0,0.35)"
-                      : hoveredMuscle === muscle.name
-                      ? "rgba(255,215,0,0.15)"
-                      : "transparent"
-                  }
-                  stroke={
-                    selectedMuscle === muscle.name || hoveredMuscle === muscle.name
-                      ? "#FFD700"
-                      : "transparent"
-                  }
-                  strokeWidth={selectedMuscle === muscle.name ? 0.5 : 0.3}
-                  className="cursor-pointer transition-all duration-200"
-                  onMouseEnter={() => setHoveredMuscle(muscle.name)}
-                  onMouseLeave={() => setHoveredMuscle(null)}
-                  onClick={() =>
-                    setSelectedMuscle(
-                      selectedMuscle === muscle.name ? null : muscle.name
-                    )
-                  }
-                  style={
-                    selectedMuscle === muscle.name
-                      ? { filter: "drop-shadow(0 0 6px rgba(255,215,0,0.5))", animation: "muscle-pulse 1.5s infinite" }
-                      : {}
-                  }
-                />
+                <g key={muscle.id}>
+                  {/* Path invisible para detección de clic más precisa */}
+                  <path
+                    d={muscle.path}
+                    fill={
+                      selectedMuscle === muscle.name
+                        ? "rgba(255,215,0,0.35)"
+                        : hoveredMuscle === muscle.name
+                        ? "rgba(255,215,0,0.15)"
+                        : "transparent"
+                    }
+                    stroke={
+                      selectedMuscle === muscle.name || hoveredMuscle === muscle.name
+                        ? "#FFD700"
+                        : "transparent"
+                    }
+                    strokeWidth={selectedMuscle === muscle.name ? 0.5 : 0.3}
+                    className="cursor-pointer transition-all duration-200"
+                    onMouseEnter={() => setHoveredMuscle(muscle.name)}
+                    onMouseLeave={() => setHoveredMuscle(null)}
+                    onClick={() =>
+                      setSelectedMuscle(
+                        selectedMuscle === muscle.name ? null : muscle.name
+                      )
+                    }
+                    style={
+                      selectedMuscle === muscle.name
+                        ? { filter: "drop-shadow(0 0 6px rgba(255,215,0,0.5))", animation: "muscle-pulse 1.5s infinite" }
+                        : {}
+                    }
+                  />
+                  {/* Círculo pequeño visible solo en hover para guía */}
+                  <circle
+                    cx={`${muscle.x}%`}
+                    cy={`${muscle.y}%`}
+                    r="1.5"
+                    fill={hoveredMuscle === muscle.name ? "#FFD700" : "transparent"}
+                    className="pointer-events-none transition-all duration-200"
+                  />
+                </g>
               ))}
             </svg>
             {/* Muscle Label Tooltip */}
