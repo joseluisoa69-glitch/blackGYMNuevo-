@@ -14,8 +14,10 @@ import {
 
 export default function Perfil() {
   const { user, logout } = useAuth();
-  const { data: profile, isLoading: isProfileLoading } = trpc.profile.get.useQuery(undefined, {
+const { data: profile, isLoading: isProfileLoading, refetch } = trpc.profile.get.useQuery(undefined, {
     enabled: !!user,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
   const utils = trpc.useUtils();
 
