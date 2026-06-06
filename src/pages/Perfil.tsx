@@ -79,14 +79,7 @@ export default function Perfil() {
     });
   };
 
-  // Mostrar loading mientras carga
-  if (isProfileLoading || !user) {
-    return (
-      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
-        <div className="animate-spin w-10 h-10 border-2 border-[#FFD700] border-t-transparent rounded-full" />
-      </div>
-    );
-  }
+  if (isProfileLoading) return <div className="flex items-center justify-center min-h-[60vh]"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#FFD700]"></div></div>;
 
   const objetivos: { id: "perder_peso" | "ganar_musculo" | "mantener" | "fuerza" | "resistencia"; label: string }[] = [
     { id: "perder_peso", label: "Perder Peso" },
