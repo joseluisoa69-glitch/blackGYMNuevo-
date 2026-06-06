@@ -1,13 +1,33 @@
 import { z } from "zod";
 import { createRouter, authedQuery } from "./middleware";
 import { getDb } from "./queries/connection";
-import { profiles } from "@db/schema";
+import { profiles, users } from "@db/schema";
 import { eq } from "drizzle-orm";
 
 export const profileRouter = createRouter({
   get: authedQuery.query(async ({ ctx }) => {
     const db = getDb();
-    const result = await db.select().from(profiles).where(eq(profiles.userId, ctx.user.id)).limit(1);
+    const userId = Number(ctx.user.id);
+
+    // Intentar por ID interno
+    let result = await db.select().from(profiles).where(eq(profiles.userId, userId)).limit(1);
+
+    // Si no encuentra, buscar por firebaseUid como fallback
+    if (!result[0] && ctx.user.firebaseUid) {
+      const userResult = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.firebaseUid, ctx.user.firebaseUid))
+        .limit(1);
+      if (userResult[0]) {
+        result = await db
+          .select()
+          .from(profiles)
+          .where(eq(profiles.userId, userResult[0].id))
+          .limit(1);
+      }
+    }
+
     return result[0] || null;
   }),
 
@@ -25,7 +45,8 @@ export const profileRouter = createRouter({
     notas: z.string().optional(),
   })).mutation(async ({ ctx, input }) => {
     const db = getDb();
-    const existing = await db.select().from(profiles).where(eq(profiles.userId, ctx.user.id)).limit(1);
+    const userId = Number(ctx.user.id);
+    const existing = await db.select().from(profiles).where(eq(profiles.userId, userId)).limit(1);
 
     if (existing.length > 0) {
       await db.update(profiles).set({ ...input, updatedAt: new Date() }).where(eq(profiles.id, existing[0].id));
@@ -33,7 +54,7 @@ export const profileRouter = createRouter({
       return updated[0];
     } else {
       const result = await db.insert(profiles).values({
-        userId: ctx.user.id,
+        userId,
         ...input,
       });
       const inserted = await db.select().from(profiles).where(eq(profiles.id, Number(result[0].insertId))).limit(1);

@@ -43,7 +43,7 @@ const { data: profile, isLoading: isProfileLoading, refetch } = trpc.profile.get
 
   // Sincronizar form cuando llegan los datos del servidor
   useEffect(() => {
-    if (profile) {
+    if (profile && typeof profile === 'object' && profile.id) {
       setForm({
         nombre: profile.nombre || user?.name || "",
         pesoKg: profile.pesoKg?.toString() || "",
@@ -60,7 +60,8 @@ const { data: profile, isLoading: isProfileLoading, refetch } = trpc.profile.get
         nombre: prev.nombre || user.name || "",
       }));
     }
-  }, [profile, user]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(profile), user?.id]);
 
   const upsertProfile = trpc.profile.upsert.useMutation({
     onSuccess: () => {
