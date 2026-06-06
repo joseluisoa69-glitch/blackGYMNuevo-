@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/providers/trpc";
 import {
@@ -14,7 +14,9 @@ import {
 
 export default function Perfil() {
   const { user, logout } = useAuth();
-  const { data: profile, isLoading } = trpc.profile.get.useQuery();
+  const { data: profile, isLoading: isProfileLoading } = trpc.profile.get.useQuery(undefined, {
+    enabled: !!user,
+  });
   const utils = trpc.useUtils();
 
   const [form, setForm] = useState<{
@@ -41,7 +43,7 @@ export default function Perfil() {
   useEffect(() => {
     if (profile) {
       setForm({
-        nombre: profile.nombre || "",
+        nombre: profile.nombre || user?.name || "",
         pesoKg: profile.pesoKg?.toString() || "",
         alturaCm: profile.alturaCm?.toString() || "",
         objetivo: profile.objetivo || "mantener",
@@ -50,8 +52,13 @@ export default function Perfil() {
         tiempoSesion: profile.tiempoSesion || 60,
         lesiones: profile.lesiones || "",
       });
+    } else if (user) {
+      setForm((prev) => ({
+        ...prev,
+        nombre: prev.nombre || user.name || "",
+      }));
     }
-  }, [profile]);
+  }, [profile, user]);
 
   const upsertProfile = trpc.profile.upsert.useMutation({
     onSuccess: () => {
@@ -73,7 +80,7 @@ export default function Perfil() {
   };
 
   // Mostrar loading mientras carga
-  if (isLoading) {
+  if (isProfileLoading || !user) {
     return (
       <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
         <div className="animate-spin w-10 h-10 border-2 border-[#FFD700] border-t-transparent rounded-full" />
