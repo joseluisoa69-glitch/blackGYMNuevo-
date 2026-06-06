@@ -19,7 +19,7 @@ const muscleZones = [
   
   // Hombros (más arriba y a los lados)
   { id: "hombros", name: "Hombros", path: "M20,15 L32,15 L30,22 L22,22 Z", x: 26, y: 18, r: 14 },
-  { id: "hombros-r", name: "Hombros", path: "M68,15 L80,15 L78,22 L70,22 Z", x: 74, y: 18, r: 14 },
+  { id: "hombros-r", name: "Hombros", path: "M68,15 L80,15 L78,22 L70,22 Z", x: 68, y: 22, r: 12 },
   
   // Pecho (más pequeño, solo centro superior)
   { id: "pecho", name: "Pecho", path: "M38,20 L62,20 L60,30 L40,30 Z", x: 50, y: 25, r: 18 },
@@ -420,3 +420,4 @@ export default function Explorar() {
     </div>
   );
 }
+
