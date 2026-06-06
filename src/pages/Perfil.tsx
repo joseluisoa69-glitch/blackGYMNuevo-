@@ -12,56 +12,76 @@ import {
   ChevronRight,
 } from "lucide-react";
 
+type FormState = {
+  nombre: string;
+  pesoKg: string;
+  alturaCm: string;
+  objetivo: "perder_peso" | "ganar_musculo" | "mantener" | "fuerza" | "resistencia";
+  nivel: "principiante" | "intermedio" | "avanzado";
+  diasSemana: number;
+  tiempoSesion: number;
+  lesiones: string;
+};
+
+const DEFAULT_FORM: FormState = {
+  nombre: "",
+  pesoKg: "",
+  alturaCm: "",
+  objetivo: "mantener",
+  nivel: "intermedio",
+  diasSemana: 3,
+  tiempoSesion: 60,
+  lesiones: "",
+};
+
+function profileToForm(profile: any, userName?: string | null): FormState {
+  return {
+    nombre: profile?.nombre || userName || "",
+    pesoKg: profile?.pesoKg?.toString() || "",
+    alturaCm: profile?.alturaCm?.toString() || "",
+    objetivo: profile?.objetivo || "mantener",
+    nivel: profile?.nivel || "intermedio",
+    diasSemana: profile?.diasSemana || 3,
+    tiempoSesion: profile?.tiempoSesion || 60,
+    lesiones: profile?.lesiones || "",
+  };
+}
+
 export default function Perfil() {
   const { user, logout } = useAuth();
-const { data: profile, isLoading: isProfileLoading, refetch } = trpc.profile.get.useQuery(undefined, {
+
+  // staleTime alto para evitar refetch innecesario al montar
+  // placeholderData: undefined para que undefined = "no ha cargado aún"
+  const {
+    data: profile,
+    isLoading: isProfileLoading,
+    isFetching,
+  } = trpc.profile.get.useQuery(undefined, {
     enabled: !!user,
-    refetchOnWindowFocus: true,
-    staleTime: 0,
+    staleTime: 1000 * 60 * 2, // 2 min cache — evita refetch en cada navegación
+    refetchOnWindowFocus: false,
   });
+
   const utils = trpc.useUtils();
 
-  const [form, setForm] = useState<{
-    nombre: string;
-    pesoKg: string;
-    alturaCm: string;
-    objetivo: "perder_peso" | "ganar_musculo" | "mantener" | "fuerza" | "resistencia";
-    nivel: "principiante" | "intermedio" | "avanzado";
-    diasSemana: number;
-    tiempoSesion: number;
-    lesiones: string;
-  }>({
-    nombre: "",
-    pesoKg: "",
-    alturaCm: "",
-    objetivo: "mantener",
-    nivel: "intermedio",
-    diasSemana: 3,
-    tiempoSesion: 60,
-    lesiones: "",
-  });
+  // Inicializar form con los datos del caché si ya están disponibles
+  // Esto evita el flash de datos vacíos en F5 cuando el caché tiene datos
+  const [form, setForm] = useState<FormState>(() =>
+    profile ? profileToForm(profile, user?.name) : DEFAULT_FORM
+  );
 
-  // Sincronizar form cuando llegan los datos del servidor
+  // Sincronizar cuando profile llega del servidor (primera carga o revalidación)
   useEffect(() => {
-    if (profile && typeof profile === 'object' && profile.id) {
-      setForm({
-        nombre: profile.nombre || user?.name || "",
-        pesoKg: profile.pesoKg?.toString() || "",
-        alturaCm: profile.alturaCm?.toString() || "",
-        objetivo: profile.objetivo || "mantener",
-        nivel: profile.nivel || "intermedio",
-        diasSemana: profile.diasSemana || 3,
-        tiempoSesion: profile.tiempoSesion || 60,
-        lesiones: profile.lesiones || "",
-      });
-    } else if (user) {
+    if (profile && profile.id) {
+      setForm(profileToForm(profile, user?.name));
+    } else if (!isProfileLoading && user && !profile) {
+      // No hay perfil aún — pre-poblar nombre del auth user
       setForm((prev) => ({
         ...prev,
         nombre: prev.nombre || user.name || "",
       }));
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(profile), user?.id]);
+  }, [profile?.id, isProfileLoading]); // Depender de profile.id evita renders innecesarios
 
   const upsertProfile = trpc.profile.upsert.useMutation({
     onSuccess: () => {
@@ -74,26 +94,27 @@ const { data: profile, isLoading: isProfileLoading, refetch } = trpc.profile.get
       nombre: form.nombre || undefined,
       pesoKg: form.pesoKg ? parseFloat(form.pesoKg) : undefined,
       alturaCm: form.alturaCm ? parseInt(form.alturaCm) : undefined,
-      objetivo: form.objetivo as "perder_peso" | "ganar_musculo" | "mantener" | "fuerza" | "resistencia",
-      nivel: form.nivel as "principiante" | "intermedio" | "avanzado",
+      objetivo: form.objetivo,
+      nivel: form.nivel,
       diasSemana: form.diasSemana,
       tiempoSesion: form.tiempoSesion,
       lesiones: form.lesiones || undefined,
     });
   };
 
-  if (isProfileLoading || profile === undefined) {
+  // Solo mostrar spinner si es la carga inicial (no hay nada en caché)
+  if (isProfileLoading && profile === undefined) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-3">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#FFD700]"></div>
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#FFD700]" />
           <p className="text-white/50 text-sm">Cargando perfil...</p>
         </div>
       </div>
     );
   }
 
-  const objetivos: { id: "perder_peso" | "ganar_musculo" | "mantener" | "fuerza" | "resistencia"; label: string }[] = [
+  const objetivos: { id: FormState["objetivo"]; label: string }[] = [
     { id: "perder_peso", label: "Perder Peso" },
     { id: "ganar_musculo", label: "Ganar Musculo" },
     { id: "mantener", label: "Mantener" },
@@ -101,7 +122,7 @@ const { data: profile, isLoading: isProfileLoading, refetch } = trpc.profile.get
     { id: "resistencia", label: "Resistencia" },
   ];
 
-  const niveles: { id: "principiante" | "intermedio" | "avanzado"; label: string }[] = [
+  const niveles: { id: FormState["nivel"]; label: string }[] = [
     { id: "principiante", label: "Principiante" },
     { id: "intermedio", label: "Intermedio" },
     { id: "avanzado", label: "Avanzado" },
@@ -112,6 +133,9 @@ const { data: profile, isLoading: isProfileLoading, refetch } = trpc.profile.get
       <h1 className="text-2xl font-bold text-white flex items-center gap-2">
         <User className="w-6 h-6 text-[#FFD700]" />
         Perfil
+        {isFetching && !isProfileLoading && (
+          <div className="w-4 h-4 border border-[#FFD700]/40 border-t-[#FFD700] rounded-full animate-spin ml-1" />
+        )}
       </h1>
 
       {/* Profile Card */}
@@ -184,6 +208,7 @@ const { data: profile, isLoading: isProfileLoading, refetch } = trpc.profile.get
             {objetivos.map((obj) => (
               <button
                 key={obj.id}
+                type="button"
                 onClick={() => setForm({ ...form, objetivo: obj.id })}
                 className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                   form.objetivo === obj.id
@@ -204,6 +229,7 @@ const { data: profile, isLoading: isProfileLoading, refetch } = trpc.profile.get
             {niveles.map((niv) => (
               <button
                 key={niv.id}
+                type="button"
                 onClick={() => setForm({ ...form, nivel: niv.id })}
                 className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${
                   form.nivel === niv.id
@@ -251,7 +277,10 @@ const { data: profile, isLoading: isProfileLoading, refetch } = trpc.profile.get
             { icon: Ruler, label: "Unidades", value: "Metrico (kg/cm)" },
             { icon: Moon, label: "Tema", value: "Oscuro" },
           ].map((item) => (
-            <div key={item.label} className="flex items-center justify-between p-4 hover:bg-white/5 transition-colors cursor-pointer">
+            <div
+              key={item.label}
+              className="flex items-center justify-between p-4 hover:bg-white/5 transition-colors cursor-pointer"
+            >
               <div className="flex items-center gap-3">
                 <item.icon className="w-5 h-5 text-white/30" />
                 <span className="text-sm text-white/70">{item.label}</span>
