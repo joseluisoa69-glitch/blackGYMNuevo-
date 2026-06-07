@@ -17,7 +17,13 @@ export const workoutRouter = createRouter({
       profileId: profile[0].id,
       routineId: input.routineId,
       diaNombre: input.diaNombre,
+      fecha: new Date(),
+      fechaFin: null,
+      duracionMinutos: 0,
       completado: false,
+      volumenTotal: 0,
+      tenantId: ctx.user.tenantId || "default",
+      createdAt: new Date(),
     });
 
     const workout = await db.select().from(workouts)
