@@ -46,11 +46,11 @@ export default function Login() {
           displayName: name.trim(),
         });
         await credential.user.getIdToken(true);
+        await refresh();
+        navigate("/");
       } else {
         await signInWithEmailAndPassword(auth, email, password);
       }
-      await refresh();
-      navigate("/");
     } catch (error: any) {
       console.error("Authentication error:", error);
       let errorMsg = "Ocurrió un error al autenticar. Por favor intenta de nuevo.";
@@ -76,8 +76,6 @@ export default function Login() {
     setAuthLoading(true);
     try {
       await signInWithPopup(auth, provider);
-      await refresh();
-      navigate("/");
     } catch (error: any) {
       console.error("OAuth error:", error);
       if (error.code !== "auth/popup-closed-by-user") {

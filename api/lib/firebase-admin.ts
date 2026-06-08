@@ -48,5 +48,5 @@ export async function verifyIdToken(token: string) {
   if (!initialized && admin.apps.length === 0) {
     initFirebaseAdmin();
   }
-  return admin.auth().verifyIdToken(token, true /* checkRevoked */);
+  return admin.auth().verifyIdToken(token);
 }

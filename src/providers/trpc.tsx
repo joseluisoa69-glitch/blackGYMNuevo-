@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import superjson from "superjson";
 import type { AppRouter } from "../../api/router";
 import { type ReactNode, useEffect, useState } from "react";
+import { auth, getActiveToken } from "@/lib/firebase";
 
 export const trpc = createTRPCReact<AppRouter>();
 
@@ -24,7 +25,6 @@ const trpcClient = trpc.createClient({
       async fetch(input, init) {
         let token: string | null = null;
         try {
-          const { getActiveToken } = await import("@/lib/firebase");
           token = await getActiveToken();
         } catch (error) {
           console.error("Error getting Firebase token for tRPC client:", error);
@@ -49,29 +49,20 @@ export function TRPCProvider({ children }: { children: ReactNode }) {
   const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
-    let unsubscribe: () => void = () => {};
     const timeout = window.setTimeout(() => {
       setInitializing(false);
     }, 3000);
 
-    import("@/lib/firebase")
-      .then(({ auth }) => {
-        unsubscribe = auth.onAuthStateChanged(async () => {
-          try {
-            await queryClient.invalidateQueries();
-          } catch (error) {
-            console.error("Failed to invalidate queries after auth state change:", error);
-          } finally {
-            clearTimeout(timeout);
-            setInitializing(false);
-          }
-        });
-      })
-      .catch((err) => {
-        console.error("Failed to initialize Firebase Auth listener:", err);
-        clearTimeout(timeout);
-        setInitializing(false);
+    const unsubscribe = auth.onAuthStateChanged(() => {
+      queryClient.invalidateQueries().catch((error) => {
+        console.error(
+          "Failed to invalidate queries after auth state change:",
+          error,
+        );
       });
+      clearTimeout(timeout);
+      setInitializing(false);
+    });
 
     return () => {
       unsubscribe();
