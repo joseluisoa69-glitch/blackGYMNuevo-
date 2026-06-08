@@ -50,21 +50,33 @@ export function TRPCProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let unsubscribe: () => void = () => {};
+    const timeout = window.setTimeout(() => {
+      setInitializing(false);
+    }, 3000);
 
     import("@/lib/firebase")
       .then(({ auth }) => {
         unsubscribe = auth.onAuthStateChanged(async () => {
-          // Whenever auth state changes, invalidate all queries to reload user context
-          await queryClient.invalidateQueries();
-          setInitializing(false);
+          try {
+            await queryClient.invalidateQueries();
+          } catch (error) {
+            console.error("Failed to invalidate queries after auth state change:", error);
+          } finally {
+            clearTimeout(timeout);
+            setInitializing(false);
+          }
         });
       })
       .catch((err) => {
         console.error("Failed to initialize Firebase Auth listener:", err);
+        clearTimeout(timeout);
         setInitializing(false);
       });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   if (initializing) {
