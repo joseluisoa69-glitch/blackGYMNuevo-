@@ -56,6 +56,16 @@ export default function MiRutina() {
   const completedWorkoutsCount = history?.filter((w) => w.completado).length || 0;
   const currentDayIndex = completedWorkoutsCount % (routine.days?.length || 1);
 
+  const parsedDiet = (() => {
+    if (!routine?.dieta) return null;
+    try {
+      return typeof routine.dieta === "string" ? JSON.parse(routine.dieta) : routine.dieta;
+    } catch (err) {
+      console.error("Could not parse diet plan from routine:", err);
+      return null;
+    }
+  })();
+
   // Get muscle group emojis for display on the cards
   const getGroupEmoji = (grupo: string): string => {
     const g = grupo.toLowerCase();
@@ -136,6 +146,60 @@ export default function MiRutina() {
           </div>
         </div>
       </div>
+
+      {parsedDiet && (
+        <div className="bg-[#141414] border border-[#2A2A2A] rounded-3xl p-6 space-y-5">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <p className="text-[10px] uppercase tracking-[2px] text-[#FFD700] font-bold mb-2">Plan Nutricional</p>
+              <h2 className="text-xl font-bold text-white">Tu Dieta Personalizada</h2>
+              <p className="text-sm text-white/50 mt-1 leading-relaxed">
+                Basada en tus objetivos, calorías meta y preferencias alimentarias.
+              </p>
+            </div>
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div className="rounded-2xl bg-[#1E1E1E] p-3 border border-[#2A2A2A]">
+                <p className="text-[10px] uppercase text-white/40 tracking-[2px]">Calorías</p>
+                <p className="text-lg font-bold text-white mt-2">{parsedDiet.caloriasDiarias}</p>
+              </div>
+              <div className="rounded-2xl bg-[#1E1E1E] p-3 border border-[#2A2A2A]">
+                <p className="text-[10px] uppercase text-white/40 tracking-[2px]">Proteínas</p>
+                <p className="text-lg font-bold text-white mt-2">{parsedDiet.macros.proteinas}g</p>
+              </div>
+              <div className="rounded-2xl bg-[#1E1E1E] p-3 border border-[#2A2A2A]">
+                <p className="text-[10px] uppercase text-white/40 tracking-[2px]">Carbs / Grasas</p>
+                <p className="text-sm text-white/70 mt-2 leading-tight">
+                  {parsedDiet.macros.carbohidratos}g / {parsedDiet.macros.grasas}g
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            {parsedDiet.comidas?.map((meal: any, index: number) => (
+              <div key={index} className="rounded-3xl border border-[#2A2A2A] bg-[#0E0E0E] p-4">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <h3 className="text-sm font-bold text-white">{meal.nombre}</h3>
+                  <span className="text-[10px] uppercase tracking-[2px] text-white/40">{meal.calorias} kcal</span>
+                </div>
+                <p className="text-sm text-white/70 leading-relaxed mb-3">{meal.descripcion}</p>
+                <div className="grid grid-cols-3 gap-2 text-[10px] uppercase text-white/50">
+                  <div className="rounded-2xl bg-[#141414] p-2 text-center">Proteínas<br /><span className="text-white font-bold">{meal.proteinas}g</span></div>
+                  <div className="rounded-2xl bg-[#141414] p-2 text-center">Carbs<br /><span className="text-white font-bold">{meal.carbohidratos}g</span></div>
+                  <div className="rounded-2xl bg-[#141414] p-2 text-center">Grasas<br /><span className="text-white font-bold">{meal.grasas}g</span></div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {parsedDiet.recomendaciones && (
+            <div className="rounded-3xl border border-[#2A2A2A] bg-[#0E0E0E] p-4 text-sm text-white/70">
+              <p className="font-semibold text-white mb-2">Recomendaciones:</p>
+              <p>{parsedDiet.recomendaciones}</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Grid of Days */}
       <div>

@@ -21,7 +21,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
       {/* Main Content */}
       <main
-        className={`transition-all duration-300 min-h-screen pb-20 md:pb-0 ${
+        className={`transition-all duration-300 min-h-screen pb-28 md:pb-0 ${
           sidebarOpen ? "md:ml-64" : "md:ml-20"
         }`}
       >

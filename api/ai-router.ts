@@ -18,6 +18,9 @@ const generateRoutineInput = z.object({
   nivelEstres: z.number(),
   comidasPorDia: z.enum(["1-2", "3", "4-5", "6+"]),
   gramosProteinaDiaria: z.number().optional().nullable(),
+  preferenciaProteina: z.string().optional().nullable(),
+  intolerancias: z.string().optional().nullable(),
+  alimentosNoGustan: z.string().optional().nullable(),
   experienciaPrevia: z.enum(["nunca", "<1 ano", "1-3 anos", ">3 anos"]),
   diasActuales: z.number(),
   cirugiasPrevias: z.string().optional().nullable(),
@@ -63,6 +66,28 @@ const generatedRoutineSchema = z.object({
   days: z.array(generatedDaySchema),
 });
 
+const generatedDietSchema = z.object({
+  caloriasDiarias: z.number(),
+  tdee: z.number(),
+  metaCalorica: z.string(),
+  macros: z.object({
+    proteinas: z.number(),
+    carbohidratos: z.number(),
+    grasas: z.number(),
+  }),
+  comidas: z.array(
+    z.object({
+      nombre: z.string(),
+      descripcion: z.string(),
+      calorias: z.number(),
+      proteinas: z.number(),
+      carbohidratos: z.number(),
+      grasas: z.number(),
+    })
+  ),
+  recomendaciones: z.string().optional().nullable(),
+});
+
 export const aiRouter = createRouter({
   generateRoutine: authedQuery
     .input(generateRoutineInput)
@@ -92,6 +117,9 @@ ESTILO DE VIDA:
 - Nivel de estrés: ${input.nivelEstres}/10
 - Comidas al día: ${input.comidasPorDia}
 - Gramos proteína diaria: ${input.gramosProteinaDiaria ?? "No especificado"}g
+- Preferencia de proteína: ${input.preferenciaProteina ?? "No especificado"}
+- Intolerancias o alergias: ${input.intolerancias ?? "Ninguna"}
+- Alimentos que no te gustan: ${input.alimentosNoGustan ?? "Ninguno"}
 
 HISTORIAL Y LESIONES:
 - Experiencia previa: ${input.experienciaPrevia}
@@ -206,6 +234,152 @@ DEVUELVE EXCLUSIVAMENTE UN OBJETO JSON VÁLIDO CON EL SIGUIENTE FORMATO (No agre
         throw new Error("Failed to parse and validate AI-generated routine. Please try again.");
       }
 
+      // Build diet guidance from calories and macros
+      const calculateBMR = () => {
+        return Math.round(
+          input.genero === "masculino"
+            ? 10 * input.pesoKg + 6.25 * input.alturaCm - 5 * input.edad + 5
+            : 10 * input.pesoKg + 6.25 * input.alturaCm - 5 * input.edad - 161
+        );
+      };
+
+      const getActivityMultiplier = () => {
+        switch (input.trabajo) {
+          case "fisico":
+            return 1.65;
+          case "mixto":
+            return 1.45;
+          default:
+            return 1.2;
+        }
+      };
+
+      const tmb = calculateBMR();
+      const tdee = Math.round(tmb * getActivityMultiplier());
+      const caloriasObjetivo =
+        input.objetivoPrincipal === "perder_peso"
+          ? Math.max(1200, Math.round(tdee - 500))
+          : input.objetivoPrincipal === "ganar_musculo"
+          ? Math.round(tdee + 350)
+          : tdee;
+
+      const macroRatios =
+        input.objetivoPrincipal === "perder_peso"
+          ? { proteinas: 0.35, carbohidratos: 0.35, grasas: 0.30 }
+          : input.objetivoPrincipal === "ganar_musculo"
+          ? { proteinas: 0.30, carbohidratos: 0.45, grasas: 0.25 }
+          : { proteinas: 0.30, carbohidratos: 0.40, grasas: 0.30 };
+
+      const calcularMacros = () => {
+        const proteinasGr = input.gramosProteinaDiaria || Math.round((caloriasObjetivo * macroRatios.proteinas) / 4);
+        const grasasGr = Math.round((caloriasObjetivo * macroRatios.grasas) / 9);
+        const carbsGr = Math.round((caloriasObjetivo * macroRatios.carbohidratos) / 4);
+        return { proteinas: proteinasGr, carbohidratos: carbsGr, grasas: grasasGr };
+      };
+
+      const targetMacros = calcularMacros();
+
+      const dietPrompt = `
+Eres un nutricionista deportivo profesional que crea planes de alimentación personalizados y en formato JSON estricto.
+Usa la siguiente información del usuario y genera un plan de dietas con ${input.comidasPorDia} comidas por día.
+
+INFORMACIÓN DEL USUARIO:
+- Edad: ${input.edad} años
+- Peso: ${input.pesoKg} kg
+- Altura: ${input.alturaCm} cm
+- Género: ${input.genero}
+- Objetivo: ${input.objetivoPrincipal}
+- Calorías objetivo: ${caloriasObjetivo} kcal
+- TDEE estimado: ${tdee} kcal
+- Preferencia de proteína: ${input.preferenciaProteina ?? "No especificado"}
+- Intolerancias o alergias: ${input.intolerancias ?? "Ninguna"}
+- Alimentos que no le gustan: ${input.alimentosNoGustan ?? "Ninguno"}
+- Comidas por día: ${input.comidasPorDia}
+- Macros objetivo: Proteínas ${targetMacros.proteinas}g, Carbohidratos ${targetMacros.carbohidratos}g, Grasas ${targetMacros.grasas}g.
+
+REQUISITOS:
+1. Genera un plan de alimentación que respete las intolerancias y evite los alimentos no deseados.
+2. Distribuye las calorías y macros entre las comidas de forma coherente.
+3. Incluye títulos de cada comida y una descripción breve de los platos.
+4. Devuelve solo un objeto JSON válido sin texto adicional ni bloques de código.
+5. Si el usuario indicó proteína preferida, enfoca las comidas en ese tipo de proteína.
+
+FORMATO DE SALIDA:
+{
+  "caloriasDiarias": 2200,
+  "tdee": 2400,
+  "metaCalorica": "Mantenimiento balanceado",
+  "macros": {
+    "proteinas": 170,
+    "carbohidratos": 220,
+    "grasas": 80
+  },
+  "comidas": [
+    {
+      "nombre": "Desayuno",
+      "descripcion": "Opción balanceada con proteína y carbohidratos de calidad",
+      "calorias": 550,
+      "proteinas": 40,
+      "carbohidratos": 60,
+      "grasas": 18
+    }
+  ],
+  "recomendaciones": "Mantén hidratación y separa las comidas cada 3-4 horas."
+}
+      `.trim();
+
+      const dietResponse = await fetch("https://api.deepseek.com/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: "deepseek-chat",
+          messages: [
+            {
+              role: "system",
+              content: "Eres un nutricionista deportivo experto que entrega planes de comidas en JSON estricto.",
+            },
+            {
+              role: "user",
+              content: dietPrompt,
+            },
+          ],
+          response_format: { type: "json_object" },
+          temperature: 0.3,
+        }),
+      });
+
+      if (!dietResponse.ok) {
+        const errorText = await dietResponse.text();
+        console.error("DeepSeek diet API error response:", errorText);
+        throw new Error(`DeepSeek diet API returned status ${dietResponse.status}: ${errorText}`);
+      }
+
+      const dietData = (await dietResponse.json()) as any;
+      const rawDietText = dietData.choices?.[0]?.message?.content;
+      if (!rawDietText) {
+        throw new Error("DeepSeek diet response empty or invalid choices.");
+      }
+
+      let cleanDietJson = rawDietText.trim();
+      if (cleanDietJson.startsWith("```json")) {
+        cleanDietJson = cleanDietJson.replace(/^```json/, "").replace(/```$/, "").trim();
+      } else if (cleanDietJson.startsWith("```")) {
+        cleanDietJson = cleanDietJson.replace(/^```/, "").replace(/```$/, "").trim();
+      }
+
+      let generatedDiet: z.infer<typeof generatedDietSchema>;
+      try {
+        const parsedDiet = JSON.parse(cleanDietJson);
+        generatedDiet = generatedDietSchema.parse(parsedDiet);
+      } catch (err) {
+        console.error("DeepSeek diet raw text:", rawDietText);
+        console.error("Diet parse or validation error:", err);
+        throw new Error("No se pudo parsear o validar el plan de dieta generado por IA. Por favor intenta de nuevo.");
+      }
+
       // 4. Save to database using Drizzle
       const db = getDb();
       const tenantId = ctx.user.tenantId || "default";
@@ -242,6 +416,9 @@ DEVUELVE EXCLUSIVAMENTE UN OBJETO JSON VÁLIDO CON EL SIGUIENTE FORMATO (No agre
         nivelEstres: input.nivelEstres,
         comidasPorDia: input.comidasPorDia,
         gramosProteinaDiaria: input.gramosProteinaDiaria || null,
+        preferenciaProteina: input.preferenciaProteina || null,
+        intolerancias: input.intolerancias || null,
+        alimentosNoGustan: input.alimentosNoGustan || null,
         experienciaPrevia: input.experienciaPrevia,
         frecuenciaActual: input.diasActuales,
         cirugiasPrevias: input.cirugiasPrevias || null,
@@ -282,6 +459,7 @@ DEVUELVE EXCLUSIVAMENTE UN OBJETO JSON VÁLIDO CON EL SIGUIENTE FORMATO (No agre
         source: "ai",
         tiempoSesionMinutos: generatedData.tiempoSesionMinutos,
         nivelRPE: generatedData.nivelRPE,
+        dieta: JSON.stringify(generatedDiet),
         tenantId,
       });
 

@@ -60,6 +60,9 @@ export const profiles = mysqlTable("profiles", {
   nivelEstres: int("nivelEstres").default(5),
   comidasPorDia: varchar("comidasPorDia", { length: 50 }), // 1-2, 3, 4-5, 6+
   gramosProteinaDiaria: int("gramosProteinaDiaria"),
+  preferenciaProteina: text("preferenciaProteina"),
+  intolerancias: text("intolerancias"),
+  alimentosNoGustan: text("alimentosNoGustan"),
   experienciaPrevia: varchar("experienciaPrevia", { length: 50 }), // Nunca, <1 año, 1-3 años, >3 años
   frecuenciaActual: int("frecuenciaActual").default(0),
   cirugiasPrevias: text("cirugiasPrevias"),
@@ -108,6 +111,7 @@ export const routines = mysqlTable("routines", {
   source: varchar("source", { length: 20 }).default("manual"),
   tiempoSesionMinutos: int("tiempoSesionMinutos").default(60),
   nivelRPE: int("nivelRPE").default(7),
+  dieta: text("dieta"),
   tenantId: varchar("tenantId", { length: 100 }).default("default").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });

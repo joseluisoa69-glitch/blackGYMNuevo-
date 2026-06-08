@@ -97,6 +97,9 @@ export default function Rutina() {
     nivelEstres: 5,
     comidasPorDia: "3" as "1-2" | "3" | "4-5" | "6+",
     gramosProteinaDiaria: null as number | null,
+    preferenciaProteina: "" as string,
+    intolerancias: "",
+    alimentosNoGustan: "",
 
     // Sección 3: Historial y Estado
     experienciaPrevia: "1-3 anos" as "nunca" | "<1 ano" | "1-3 anos" | ">3 anos",
@@ -483,6 +486,40 @@ export default function Rutina() {
                       />
                     </div>
                   </div>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <label className="text-xs text-white/50 uppercase tracking-wider mb-2 block font-semibold">Preferencia de proteína</label>
+                      <input
+                        type="text"
+                        value={formData.preferenciaProteina}
+                        onChange={(e) => setFormData({ ...formData, preferenciaProteina: e.target.value })}
+                        placeholder="Ej. carne roja, pollo, pescados, vegana, vegetal"
+                        className="w-full h-12 px-4 bg-[#1E1E1E] border border-[#2A2A2A] rounded-xl text-white placeholder:text-white/20 focus:border-[#FFD700] focus:outline-none transition-colors text-sm"
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <div>
+                        <label className="text-xs text-white/50 uppercase tracking-wider mb-2 block font-semibold">Intolerancias o alergias</label>
+                        <textarea
+                          value={formData.intolerancias}
+                          onChange={(e) => setFormData({ ...formData, intolerancias: e.target.value })}
+                          placeholder="Ej. lactosa, gluten, frutos secos"
+                          rows={2}
+                          className="w-full px-4 py-3 bg-[#1E1E1E] border border-[#2A2A2A] rounded-xl text-white placeholder:text-white/20 focus:border-[#FFD700] focus:outline-none resize-none text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-white/50 uppercase tracking-wider mb-2 block font-semibold">Alimentos que NO te gustan</label>
+                        <textarea
+                          value={formData.alimentosNoGustan}
+                          onChange={(e) => setFormData({ ...formData, alimentosNoGustan: e.target.value })}
+                          placeholder="Ej. brócoli, sardinas, aguacate"
+                          rows={2}
+                          className="w-full px-4 py-3 bg-[#1E1E1E] border border-[#2A2A2A] rounded-xl text-white placeholder:text-white/20 focus:border-[#FFD700] focus:outline-none resize-none text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -624,17 +661,6 @@ export default function Rutina() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs text-white/50 uppercase tracking-wider mb-2 block font-semibold">Plazo (Semanas)</label>
-                      <input
-                        type="number"
-                        value={formData.tiempoMeta || ""}
-                        onChange={(e) => setFormData({ ...formData, tiempoMeta: parseInt(e.target.value) || 0 })}
-                        placeholder="Ej. 12 semanas"
-                        className="w-full h-12 px-4 bg-[#1E1E1E] border border-[#2A2A2A] rounded-xl text-white placeholder:text-white/20 focus:border-[#FFD700] focus:outline-none transition-colors text-sm"
-                      />
-                    </div>
-
                     <div>
                       <label className="text-xs text-white/50 uppercase tracking-wider mb-2 block font-semibold">Equipamiento Disponible</label>
                       <div className="grid grid-cols-2 gap-2">
